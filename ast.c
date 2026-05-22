@@ -16,8 +16,21 @@ FilterNode* create_logic_node(NodeType type, FilterNode *left, FilterNode *right
     // TODO: malloc() basarisiz olursa, hata mesajini yazin ve programi sonlandirin.
     // TODO: düğümün türünü, sol ve sağ işaretçilerini ayarlayın.
     // TODO: Diger alanları güvenli varsayılan değerlerle başlatın (örneğin: min_val = 0, string_val[0] = '\0', bool_val = false).
-
-    return NULL; // Burayı uygun şekilde yeni oluşturulan düğümle değiştirin.
+    
+    FilterNode *newNode = (FilterNode*) malloc(sizeof(FilterNode));
+    if (newNode == NULL) {
+        fprintf(stderr, "malloc hatası\n");
+        exit(1);
+    }
+    newNode->type = type;
+    newNode->left = left;
+    newNode->right = right;
+    newNode->min_val = 0;
+    newNode->max_val = 0;
+    newNode->bool_val = false;
+    newNode->string_val[0] = '\0';
+    
+    return newNode;
 }
 
 // Aralık duğümlerini oluşturan yardımcı fonksiyon
@@ -25,8 +38,21 @@ FilterNode* create_range_node(NodeType type, int min_val, int max_val) {
     // TODO: Yeni bir FilterNode için bellek ayırın(malloc)
     // TODO: Düğümün türünü, min_val ve max_val değişkenlerini ayarlayın.
     // İpucu: Bu düğüm bir yaprak olduğundan, left ve right işaretçileri NULL olmalıdır.
-
-    return NULL; // Burayı uygun şekilde yeni oluşturulan düğümle değiştirin.
+    
+    FilterNode *newNode = (FilterNode*) malloc(sizeof(FilterNode));
+    if (newNode == NULL) {
+        fprintf(stderr, "malloc hatası\n");
+        exit(1);
+    }
+    newNode->type = type;
+    newNode->left = NULL;
+    newNode->right = NULL;
+    newNode->min_val = min_val;
+    newNode->max_val = max_val;
+    newNode->bool_val = false;
+    newNode->string_val[0] = '\0';
+    
+    return newNode;
 }
 
 FilterNode* create_string_node(NodeType type, const char *str) {
@@ -34,18 +60,45 @@ FilterNode* create_string_node(NodeType type, const char *str) {
     // TODO: Düğümün türünü ayarlayın.
     // TODO: string_val dizisine 'str' parametresini güvenli bir şekilde kopyalayın (strncpy kullanın).
     // İpucu: Bu düğüm NODE_STRING_MATCH, NODE_WEAK_TO, NODE_STRONG_AGAINST ve NODE_BOOL_FLAG için kullanılır.
+    
+    FilterNode *newNode = (FilterNode*) malloc(sizeof(FilterNode));
+    if (newNode == NULL) {
+        fprintf(stderr, "malloc hatası\n");
+        exit(1);
+    }
+    newNode->type = type;
+    newNode->left = NULL;
+    newNode->right = NULL;
+    newNode->min_val = 0;
+    newNode->max_val = 0;
+    newNode->bool_val = false;
+    
+    strncpy(newNode->string_val, str, sizeof(newNode->string_val) - 1);
+    newNode->string_val[sizeof(newNode->string_val) - 1] = '\0';
 
-    return NULL; // Burayı uygun şekilde yeni oluşturulan düğümle değiştirin.
+    return newNode;
 }
 
 FilterNode* create_int_node(NodeType type, int val) {
     // TODO: Yeni bir FilterNode için bellek ayırın(malloc)
     // TODO: Düğümün türünü ayarlayın ve 'val' değerini ayarlayın
     // İpucu: Bu düğüm özellikle NODE_IV_STAR için kullanışlıdır (örneğin: 0, 1, 2, 3 veya 4 saklamak için).
-
-    return NULL;
+    
+    FilterNode *newNode = (FilterNode*) malloc(sizeof(FilterNode));
+    if (newNode == NULL) {
+        fprintf(stderr, "malloc hatası\n");
+        exit(1);
+    }
+    newNode->type = type;
+    newNode->left = NULL;
+    newNode->right = NULL;
+    newNode->min_val = val;
+    newNode->max_val = 0;
+    newNode->bool_val = false;
+    newNode->string_val[0] = '\0';
+ 
+    return newNode;
 }
-
 /* =========================================================================
  * 2. AST BELLEK TEMİZLEME FONKSİYONU
  * Bu fonksiyon, AST'nin tüm düğümlerini dolaşarak malloc ile ayrılan belleği
@@ -58,6 +111,11 @@ void free_ast(FilterNode *root) {
     // 2. Sol çocuğu özyinelemeli olarak serbest bırakın.
     // 3. Sağ çocuğu özyinelemeli olarak serbest bırakın.
     // 4. Mevcut root düğümünü serbest bırakın.
+if (root==NULL) return;
+free_ast(root->left);
+free_ast(root->right);
+free(root);
+    return;
 }
 
 /* =========================================================================
@@ -65,10 +123,12 @@ void free_ast(FilterNode *root) {
  * Bu fonksiyon, tek bir Pokemonu AST'ye göre özyinelemeli olarak değerlendirir.
  * ========================================================================= */
 
+ 
 bool evaluate_pokemon(const PokemonInstance *inst, const PokemonBase *base, const FilterNode *root) {
     // Temel durum: Ağaç boşsa her şeyle eşleşir
     // Kodun bu başlangıç hali tüm sorgularda bütün Pokemonların döndürülmesine neden olur,
     // bu yüzden bunu kaldırıp yerine gerçek değerlendirme mantığını eklemeniz gerekecek.
+    int sum;
     if (root == NULL) {
         return true;
     }
@@ -78,42 +138,58 @@ bool evaluate_pokemon(const PokemonInstance *inst, const PokemonBase *base, cons
         // MANTIKSAL OPERATÖRLER
         case NODE_AND:
             // TODO: Sol ve sağ çocukları özyinelemeli olarak değerlendirin ve sonuçları AND'leyin
-            return false;
+            return  evaluate_pokemon(inst, base, root->left) && evaluate_pokemon(inst, base, root->right);
 
         case NODE_OR:
             // TODO: Sol ve sağ çocukları özyinelemeli olarak değerlendirin
-            return false;
+            return evaluate_pokemon(inst, base, root->left) || evaluate_pokemon(inst, base, root->right);
 
         case NODE_NOT:
             // TODO: Sol çocuğu özyinelemeli olarak değerlendirin ve sonucu TERSİNE ÇEVİRİN
-            return false;
+            return !evaluate_pokemon(inst, base, root->left);
 
         // TAMSAYI ARALIKLARI
         case NODE_CP_RANGE:
             // TODO: inst->cp'nin root->min_val ile root->max_val(dahil) arasında olup olmadığını kontrol edin
-            return false;
+            return (inst->cp>=root->min_val)&&(inst->cp<=root->max_val);
 
         case NODE_HP_RANGE:
             // TODO: inst->hp'nin ilgili aralıkta olup olmadığını kontrol edin
-            return false;
+            return (inst->hp >= root->min_val) && (inst->hp <= root->max_val);
 
         case NODE_AGE_RANGE:
             // TODO: inst->catch_days_ago'nun ilgili aralıkta olup olmadığını kontrol edin
-            return false;
+            return (inst->catch_days_ago >= root->min_val) && (inst->catch_days_ago <= root->max_val);
 
         case NODE_YEAR_RANGE:
             // TODO: inst->catch_year'nin ilgili aralıkta olup olmadığını kontrol edin
-            return false;
+            return (inst->catch_year >= root->min_val) && (inst->catch_year <= root->max_val);
 
         case NODE_ID_RANGE:
             // TODO: inst->poke_id'nin ilgili aralıkta olup olmadığını kontrol edin
-            return false;
+            return (inst->poke_id >= root->min_val) && (inst->poke_id <= root->max_val);
 
         // --- IV STARS (0*, 1*, 2*, 3*, 4*) ---
         case NODE_IV_STAR:
             // TODO: inst->iv_attack + inst->iv_defense + inst->iv_hp toplamını hesaplayın
             // TODO: Toplam değerinin root->min_val'a göre doğru aralığa düşüp düşmediğini kontrol edin
             // (0*: 0-22, 1*: 23-29, 2*: 30-36, 3*: 37-44, 4*: 45)
+             sum=inst->iv_attack+inst->iv_defense+inst->iv_hp;
+            if(sum>=0&&sum<=22&&root->min_val==0){
+                return true;
+            }
+              if(sum>=23&&sum<=29&&root->min_val==1){
+                return true;
+            }
+              if(sum>=30&&sum<=36&&root->min_val==2){
+                return true;
+            }
+                if(sum>=37&&sum<=44&&root->min_val==3){
+                return true;
+            }
+                 if(sum>=45&&root->min_val==4){
+                return true;
+            }
             return false;
 
         // STRING EŞLEŞMELERİ
@@ -125,6 +201,23 @@ bool evaluate_pokemon(const PokemonInstance *inst, const PokemonBase *base, cons
             // - inst->move1_type veya inst->move2_type (Hareket Türü araması, örneğin: "@fighting")
             // - base->name'in bir alt dizisi (Ad araması, örneğin: "pika")
             // İpucu: Büyük/küçük harfe duyarsız karşılaştırmalar için strcasecmp() ve alt diziler için strcasestr() kullanın.
+           
+            if (strcasecmp(base->type1, root->string_val) == 0) {
+                return true; }
+            if (strcasecmp(base->type2, root->string_val) == 0) {
+                return true; }
+        if(root->string_val[0] == '@'){
+            if (strcasecmp(inst->move1, root->string_val+1) == 0) {
+                return true; }
+            if (strcasecmp(inst->move2, root->string_val+1) == 0) {
+                return true; }
+            if (strcasecmp(inst->move1_type, root->string_val+1) == 0) {
+                return true; }
+            if (strcasecmp(inst->move2_type, root->string_val+1) == 0) {
+                return true; }
+                                }
+            if (strcasestr(base->name, root->string_val) != NULL) {
+                return true;}
             return false;
 
         // TİP ETKİNLİĞİ (<type ve >type)
@@ -133,13 +226,15 @@ bool evaluate_pokemon(const PokemonInstance *inst, const PokemonBase *base, cons
             // İpucu: get_type_multiplier(root->string_val, base->type1)
             // ve get_type_multiplier(root->string_val, base->type2) kullanın.
             // Sonuçları çarpın ve 100'e bölün. Eğer sonuç 100'den büyükse, true döndürün.
-            return false;
+          
+
+            return  100< get_type_multiplier(root->string_val,base->type1)*get_type_multiplier(root->string_val,base->type2)/100;
 
         case NODE_STRONG_AGAINST:
             // TODO: Pokemonun, root->string_val'a karşı süper etkili bir hareketi olup olmadığını kontrol edin.
             // İpucu: get_type_multiplier(inst->move1_type, root->string_val)
             // VEYA get_type_multiplier(inst->move2_type, root->string_val) kullanın.
-            return false;
+            return get_type_multiplier(inst->move1_type, root->string_val) > 100 || get_type_multiplier(inst->move2_type, root->string_val) > 100;
 
         // BOOL BAYRAKLARI (shiny, shadow, legendary, mythical, evolve gibi)
         case NODE_BOOL_FLAG:
@@ -147,6 +242,19 @@ bool evaluate_pokemon(const PokemonInstance *inst, const PokemonBase *base, cons
             // Örnek: if (strcasecmp(root->string_val, "shiny") == 0) { return inst->is_shiny; }
             // Örnek: Eğer "evolve" isteniyorsa, base->candy_to_evolve > 0 VE inst->candy_count >= base->candy_to_evolve
             // olup olmadığını kontrol edin.
+            
+            if (strcasecmp("shiny", root->string_val) == 0) {
+                return inst->is_shiny; }
+            if (strcasecmp("shadow", root->string_val) == 0) {
+                return inst->is_shadow; }
+            if (strcasecmp("legendary", root->string_val) == 0) {
+                return base->is_legendary; }
+            if (strcasecmp("mythical", root->string_val) == 0) {
+                return base->is_mythical; }
+            if (strcasecmp("evolve", root->string_val) == 0) {
+                return base->candy_to_evolve>0&&inst->candy_count>=base->candy_to_evolve; }
+           
+            
             return false;
 
         default:

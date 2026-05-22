@@ -96,7 +96,7 @@ bool evaluate_pokemon(const PokemonInstance *inst, const PokemonBase *base, cons
 FilterNode* create_logic_node(NodeType type, FilterNode *left, FilterNode *right);
 FilterNode* create_range_node(NodeType type, int min_val, int max_val);
 FilterNode* create_string_node(NodeType type, const char *str);
-FilterNode* create_bool_node(NodeType type, bool val);
+// NOTE: `create_bool_node` removed — not used in this project
 FilterNode* create_int_node(NodeType type, int val);
 
 /**
